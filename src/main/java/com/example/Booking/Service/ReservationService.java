@@ -2,7 +2,8 @@ package com.example.Booking.Service;
 
 import com.example.Booking.Dto.ReservationRequestDto;
 import com.example.Booking.Dto.ReservationResponseDto;
-import com.example.Booking.Entity.Reservations;
+import com.example.Booking.Dto.AdminReservationUpdateDto;
+import com.example.Booking.Entity.Reservation;
 import com.example.Booking.Entity.Resources;
 import com.example.Booking.Entity.User;
 import com.example.Booking.Enum.Role;
@@ -11,17 +12,18 @@ import com.example.Booking.Repository.ReservationRepository;
 import com.example.Booking.Repository.ResourceRepository;
 import com.example.Booking.Repository.UserRepository;
 import com.example.Booking.Mapper.ReservationMapper;
-import com.example.Booking.Exception.ResourceNotFoundException; // IMPORT ADDED HERE
+import com.example.Booking.Exception.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
-import static com.example.Booking.Repository.ReservationSpecification.*;
+import com.example.Booking.Repository.ReservationSpecification;
 
 @Service
 public class ReservationService {
@@ -55,7 +57,7 @@ public class ReservationService {
                 resourceRepository
                         .findById(request.getResourceId())
                         .orElseThrow(() ->
-                                new ResourceNotFoundException( // FIXED
+                                new ResourceNotFoundException(
                                         "Resource not found with id: " + request.getResourceId()));
 
         if (!Boolean.TRUE.equals(resource.getAvailable())) {
@@ -69,8 +71,8 @@ public class ReservationService {
                     "End time must be after start time");
         }
 
-        Reservations reservation =
-                new Reservations();
+        Reservation reservation =
+                new Reservation();
 
         // USER comes from JWT
         reservation.setUser(user);
@@ -89,7 +91,7 @@ public class ReservationService {
         reservation.setStatus(
                 Status.PENDING);
 
-        Reservations saved =
+        Reservation saved =
                 reservationRepository.save(
                         reservation);
 
@@ -108,11 +110,11 @@ public class ReservationService {
         User user =
                 getLoggedInUser(userDetails);
 
-        Specification<Reservations> specification =
+        Specification<Reservation> specification =
                 Specification
-                        .where(hasStatus(status))
-                        .and(priceGreaterThanOrEqualTo(minPrice))
-                        .and(priceLessThanOrEqualTo(maxPrice));
+                        .where(ReservationSpecification.hasStatus(status))
+                        .and(ReservationSpecification.priceGreaterThanOrEqualTo(minPrice))
+                        .and(ReservationSpecification.priceLessThanOrEqualTo(maxPrice));
 
         // ADMIN → all reservations
         // USER → only own reservations
@@ -120,7 +122,7 @@ public class ReservationService {
 
             specification =
                     specification.and(
-                            belongsToUser(user.getId()));
+                            ReservationSpecification.belongsToUser(user.getId()));
         }
 
         return reservationRepository
@@ -136,37 +138,43 @@ public class ReservationService {
             UserDetails userDetails) {
 
         User user = getLoggedInUser(userDetails);
-        Reservations reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + reservationId)); // FIXED
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + reservationId));
 
         if (user.getRoles() != Role.ADMIN
                 && !reservation.getUser().getId().equals(user.getId())) {
-            throw new org.springframework.security.access.AccessDeniedException(
-                    "You are not allowed to access this reservation");
+            throw new ResourceNotFoundException("Reservation not found with id: " + reservationId);
         }
 
         return mapToResponse(reservation);
     }
 
     // UPDATE RESERVATION
-    // ADMIN operation
+    // Owner or ADMIN may update reservation details.
     @Transactional
     public ReservationResponseDto updateReservation(
             Long reservationId,
-            ReservationRequestDto request) {
+            ReservationRequestDto request,
+            UserDetails userDetails) {
 
-        Reservations reservation =
+        Reservation reservation =
                 reservationRepository
                         .findById(reservationId)
                         .orElseThrow(() ->
-                                new ResourceNotFoundException( // FIXED
+                                new ResourceNotFoundException(
                                         "Reservation not found with id: " + reservationId));
+
+        User user = getLoggedInUser(userDetails);
+        if (user.getRoles() != Role.ADMIN
+                && !reservation.getUser().getId().equals(user.getId())) {
+            throw new AccessDeniedException("You are not allowed to update this reservation");
+        }
 
         Resources resource =
                 resourceRepository
                         .findById(request.getResourceId())
                         .orElseThrow(() ->
-                                new ResourceNotFoundException( // FIXED
+                                new ResourceNotFoundException(
                                         "Resource not found with id: " + request.getResourceId()));
 
         if (!request.getEndTime()
@@ -174,6 +182,14 @@ public class ReservationService {
 
             throw new IllegalArgumentException(
                     "End time must be after start time");
+        }
+
+        if (!Boolean.TRUE.equals(resource.getAvailable())) {
+            throw new IllegalArgumentException("Resource is not available");
+        }
+        if (reservationRepository.existsByResourceIdAndIdNotAndStartTimeLessThanAndEndTimeGreaterThan(
+                resource.getId(), reservationId, request.getEndTime(), request.getStartTime())) {
+            throw new IllegalArgumentException("Resource is already reserved for the requested time");
         }
 
         reservation.setResource(resource);
@@ -187,15 +203,19 @@ public class ReservationService {
         reservation.setPrice(
                 resource.getPrice());
 
-        if (request.getStatus() != null) {
-            reservation.setStatus(request.getStatus());
-        }
-
-        Reservations updated =
+        Reservation updated =
                 reservationRepository.save(
                         reservation);
 
         return mapToResponse(updated);
+    }
+
+    @Transactional
+    public ReservationResponseDto updateReservationStatus(Long reservationId, AdminReservationUpdateDto request) {
+        Reservation reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + reservationId));
+        reservation.setStatus(request.getStatus());
+        return mapToResponse(reservationRepository.save(reservation));
     }
 
 
@@ -208,11 +228,11 @@ public class ReservationService {
 
 
 
-        Reservations reservation =
+        Reservation reservation =
                 reservationRepository
                         .findById(reservationId)
                         .orElseThrow(() ->
-                                new ResourceNotFoundException( // FIXED
+                                new ResourceNotFoundException(
                                         "Reservation not found with id: " + reservationId));
 
         reservationRepository.delete(
@@ -220,7 +240,7 @@ public class ReservationService {
     }
 
     // GET LOGGED-IN USER (Unified to look up by Username OR Email)
-// Identity convention: USERNAME (same as the JWT subject and Userdetails.getUsername())
+    // Identity convention: USERNAME (same as the JWT subject and Userdetails.getUsername()).
     private User getLoggedInUser(UserDetails userDetails) {
         String username = userDetails.getUsername();
 
@@ -234,7 +254,7 @@ public class ReservationService {
 
     // ENTITY → DTO
     private ReservationResponseDto mapToResponse(
-            Reservations reservation) {
+            Reservation reservation) {
 
         return reservationMapper.toDto(reservation);
     }

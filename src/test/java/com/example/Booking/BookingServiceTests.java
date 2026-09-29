@@ -5,7 +5,7 @@ import com.example.Booking.Dto.ReservationRequestDto;
 import com.example.Booking.Dto.ReservationResponseDto;
 import com.example.Booking.Dto.ResourceRequestDto;
 import com.example.Booking.Dto.ResourceResponseDto;
-import com.example.Booking.Entity.Reservations;
+import com.example.Booking.Entity.Reservation;
 import com.example.Booking.Entity.Resources;
 import com.example.Booking.Entity.User;
 import com.example.Booking.Enum.Role;
@@ -27,6 +27,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import java.security.SecureRandom;
+import java.util.Base64;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -38,6 +42,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @SpringBootTest
 @ActiveProfiles("test")
 class BookingServiceTests {
+
+    @DynamicPropertySource
+    static void jwtSecret(DynamicPropertyRegistry registry) {
+        byte[] key = new byte[32];
+        new SecureRandom().nextBytes(key);
+        registry.add("jwt.secret", () -> Base64.getEncoder().encodeToString(key));
+    }
 
     @Autowired private AuthService authService;
     @Autowired private JwtService jwtService;
@@ -82,13 +93,13 @@ class BookingServiceTests {
     }
 
     @Test
-    void userCanOnlyReadOwnReservationsAndFiltersAreApplied() {
+    void userCanOnlyReadOwnReservationAndFiltersAreApplied() {
         User user = saveUser("user", "user@booking.com", Role.USER);
         User other = saveUser("other", "other@booking.com", Role.USER);
         Resources resource = saveResource();
         ReservationResponseDto created = reservationService.createReservation(
                 reservationRequest(resource.getId()), new Userdetails(user));
-        Reservations foreign = saveReservation(other, resource, new BigDecimal("200.00"), Status.CONFIRMED);
+        Reservation foreign = saveReservation(other, resource, new BigDecimal("200.00"), Status.CONFIRMED);
 
         Page<ReservationResponseDto> result = reservationService.getReservations(
                 new Userdetails(user), Status.PENDING, new BigDecimal("50.00"),
@@ -97,7 +108,7 @@ class BookingServiceTests {
         assertEquals(1, result.getTotalElements());
         assertEquals(user.getId(), created.getUserId());
         assertEquals(created.getId(), result.getContent().get(0).getId());
-        assertThrows(AccessDeniedException.class,
+        assertThrows(com.example.Booking.Exception.ResourceNotFoundException.class,
                 () -> reservationService.getReservationById(foreign.getId(), new Userdetails(user)));
     }
 
@@ -105,11 +116,11 @@ class BookingServiceTests {
     void adminCanUpdateReservationStatus() {
         User admin = saveUser("admin", "admin@booking.com", Role.ADMIN);
         Resources resource = saveResource();
-        Reservations reservation = saveReservation(admin, resource, new BigDecimal("100.00"), Status.PENDING);
+        Reservation reservation = saveReservation(admin, resource, new BigDecimal("100.00"), Status.PENDING);
         ReservationRequestDto request = reservationRequest(resource.getId());
-        request.setStatus(Status.CONFIRMED);
-
-        ReservationResponseDto updated = reservationService.updateReservation(reservation.getId(), request);
+        com.example.Booking.Dto.AdminReservationUpdateDto statusRequest = new com.example.Booking.Dto.AdminReservationUpdateDto();
+        statusRequest.setStatus(Status.CONFIRMED);
+        ReservationResponseDto updated = reservationService.updateReservationStatus(reservation.getId(), statusRequest);
 
         assertEquals(Status.CONFIRMED, updated.getStatus());
     }
@@ -131,8 +142,8 @@ class BookingServiceTests {
         return resourceRepository.save(resource);
     }
 
-    private Reservations saveReservation(User user, Resources resource, BigDecimal price, Status status) {
-        Reservations reservation = new Reservations();
+    private Reservation saveReservation(User user, Resources resource, BigDecimal price, Status status) {
+        Reservation reservation = new Reservation();
         reservation.setUser(user);
         reservation.setResource(resource);
         reservation.setStartTime(LocalDateTime.now().plusDays(1));

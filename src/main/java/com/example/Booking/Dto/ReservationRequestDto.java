@@ -2,7 +2,6 @@ package com.example.Booking.Dto;
 
 import jakarta.validation.constraints.NotNull;
 
-import com.example.Booking.Enum.Status;
 
 import java.time.LocalDateTime;
 
@@ -17,7 +16,6 @@ public class ReservationRequestDto {
     @NotNull(message = "End time is required")
     private LocalDateTime endTime;
 
-    private Status status;
 
     public Long getResourceId() {
         return resourceId;
@@ -43,11 +41,4 @@ public class ReservationRequestDto {
         this.endTime = endTime;
     }
 
-    public Status getStatus() {
-        return status;
-    }
-
-    public void setStatus(Status status) {
-        this.status = status;
-    }
 }

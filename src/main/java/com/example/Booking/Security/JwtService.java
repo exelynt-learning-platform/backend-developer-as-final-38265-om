@@ -22,20 +22,22 @@ import java.util.Date;
 @Service
 public class JwtService {
 
-    @Value("${jwt.secret}")
-    private String secretKey;
-
-    @Value("${jwt.issuer}")
-    private String issuer;
-
-    @Value("${jwt.audience}")
-    private String audience;
-
-    // Short-lived access token (default 15 minutes)
-    @Value("${jwt.expiration-ms:900000}")
-    private long jwtExpirationMs;
+    private final String secretKey;
+    private final String issuer;
+    private final String audience;
+    private final long jwtExpirationMs;
 
     private SecretKey signingKey;
+
+    public JwtService(@Value("${jwt.secret}") String secretKey,
+                      @Value("${jwt.issuer}") String issuer,
+                      @Value("${jwt.audience}") String audience,
+                      @Value("${jwt.expiration-ms:900000}") long jwtExpirationMs) {
+        this.secretKey = secretKey;
+        this.issuer = issuer;
+        this.audience = audience;
+        this.jwtExpirationMs = jwtExpirationMs;
+    }
 
     @PostConstruct
     void init() {

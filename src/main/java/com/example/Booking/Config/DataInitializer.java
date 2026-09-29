@@ -24,12 +24,14 @@ public class DataInitializer {
 
     private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
 
-    // No default value: a missing variable stops startup with an unresolved-placeholder error
-    @Value("${SEED_ADMIN_PASSWORD}")
-    private String adminPassword;
+    private final String adminPassword;
+    private final String userPassword;
 
-    @Value("${SEED_USER_PASSWORD}")
-    private String userPassword;
+    public DataInitializer(@Value("${SEED_ADMIN_PASSWORD}") String adminPassword,
+                           @Value("${SEED_USER_PASSWORD}") String userPassword) {
+        this.adminPassword = adminPassword;
+        this.userPassword = userPassword;
+    }
 
     @Bean
     CommandLineRunner seedUsers(UserRepository userRepository,

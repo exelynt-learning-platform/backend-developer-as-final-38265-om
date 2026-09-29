@@ -1,15 +1,18 @@
 
 package com.example.Booking.Repository;
 
-import com.example.Booking.Entity.Reservations;
+import com.example.Booking.Entity.Reservation;
 import com.example.Booking.Enum.Status;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 
+/**
+ * Reservation query specifications. Optional filter factories return {@code null}
+ * when their input is absent; Spring Data JPA treats the resulting predicate as unrestricted.
+ */
 public class ReservationSpecification {
-
-    public static Specification<Reservations> hasStatus(Status status) {
+    public static Specification<Reservation> hasStatus(Status status) {
 
         return (root, query, criteriaBuilder) -> {
 
@@ -25,7 +28,7 @@ public class ReservationSpecification {
     }
 
 
-    public static Specification<Reservations> priceGreaterThanOrEqualTo(
+    public static Specification<Reservation> priceGreaterThanOrEqualTo(
             BigDecimal minPrice) {
 
         return (root, query, criteriaBuilder) -> {
@@ -42,7 +45,7 @@ public class ReservationSpecification {
     }
 
 
-    public static Specification<Reservations> priceLessThanOrEqualTo(
+    public static Specification<Reservation> priceLessThanOrEqualTo(
             BigDecimal maxPrice) {
 
         return (root, query, criteriaBuilder) -> {
@@ -59,7 +62,7 @@ public class ReservationSpecification {
     }
 
 
-    public static Specification<Reservations> belongsToUser(
+    public static Specification<Reservation> belongsToUser(
            Long userId) {
 
         return (root, query, criteriaBuilder) ->

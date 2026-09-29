@@ -12,11 +12,7 @@ import java.util.Map;
 @Component
 public class JsonErrorWriter {
 
-    private final ObjectMapper objectMapper;
-
-    public JsonErrorWriter(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public void write(HttpServletResponse response, int status, String message) throws IOException {
         Map<String, Object> body = new LinkedHashMap<>();
@@ -26,6 +22,6 @@ public class JsonErrorWriter {
         response.setStatus(status);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
-        objectMapper.writeValue(response.getWriter(), body);
+        OBJECT_MAPPER.writeValue(response.getWriter(), body);
     }
 }

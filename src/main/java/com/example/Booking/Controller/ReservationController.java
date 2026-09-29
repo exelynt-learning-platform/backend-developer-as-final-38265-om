@@ -1,6 +1,7 @@
 package com.example.Booking.Controller;
 
 import com.example.Booking.Dto.ReservationRequestDto;
+import com.example.Booking.Dto.AdminReservationUpdateDto;
 import com.example.Booking.Dto.ReservationResponseDto;
 import com.example.Booking.Enum.Status;
 import com.example.Booking.Service.ReservationService;
@@ -19,12 +20,14 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.Set;
 import java.util.TreeSet;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @RestController
 @RequestMapping("/reservations")
 public class ReservationController {
 
-    // Must match the field names in the Reservations entity exactly
+    // Must match the field names in the Reservation entity exactly
     private static final Set<String> ALLOWED_SORT_FIELDS =
             Set.of("startTime", "endTime", "status", "price");
 
@@ -61,6 +64,9 @@ public class ReservationController {
             @RequestParam(defaultValue = "startTime") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection) {
 
+        if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
+            throw new IllegalArgumentException("minPrice must be less than or equal to maxPrice");
+        }
         if (!ALLOWED_SORT_FIELDS.contains(sortBy)) {
             throw new IllegalArgumentException(
                     "Invalid sortBy '" + sortBy + "'. Allowed values: "
@@ -94,14 +100,22 @@ public class ReservationController {
         return ResponseEntity.ok(reservationService.getReservationById(id, userDetails));
     }
 
-    // ADMIN ONLY
+    // USER may update an owned reservation; ADMIN may update any reservation.
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<ReservationResponseDto> updateReservation(
             @PathVariable Long id,
-            @Valid @RequestBody ReservationRequestDto request) {
+            @Valid @RequestBody ReservationRequestDto request,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
-        return ResponseEntity.ok(reservationService.updateReservation(id, request));
+        return ResponseEntity.ok(reservationService.updateReservation(id, request, userDetails));
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ReservationResponseDto> updateReservationStatus(
+            @PathVariable Long id, @Valid @RequestBody AdminReservationUpdateDto request) {
+        return ResponseEntity.ok(reservationService.updateReservationStatus(id, request));
     }
 
     // ADMIN ONLY

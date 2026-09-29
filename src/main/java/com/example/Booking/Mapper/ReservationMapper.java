@@ -1,7 +1,7 @@
 package com.example.Booking.Mapper;
 
 import com.example.Booking.Dto.ReservationResponseDto;
-import com.example.Booking.Entity.Reservations;
+import com.example.Booking.Entity.Reservation;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -14,7 +14,7 @@ public interface ReservationMapper {
     @Mapping(target = "resourceId", source = "resource.id")
     @Mapping(target = "startTime", source = "startTime")
     @Mapping(target = "endTime", source = "endTime")
-    ReservationResponseDto toDto(Reservations reservation);
+    ReservationResponseDto toDto(Reservation reservation);
 
-    List<ReservationResponseDto> toDtoList(List<Reservations> reservations);
+    List<ReservationResponseDto> toDtoList(List<Reservation> reservations);
 }

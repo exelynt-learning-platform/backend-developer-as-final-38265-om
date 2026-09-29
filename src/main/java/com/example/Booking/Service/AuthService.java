@@ -3,8 +3,10 @@ package com.example.Booking.Service;
 import com.example.Booking.Dto.LoginRequestDto;
 import com.example.Booking.Dto.LoginResponseDto;
 import com.example.Booking.Entity.User;
-import com.example.Booking.Repository.UserRepository;
 import com.example.Booking.Security.JwtService;
+import com.example.Booking.Security.Userdetails;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -13,34 +15,29 @@ import org.springframework.stereotype.Service;
 public class AuthService {
 
     private final AuthenticationManager authenticationManager;
-    private final UserRepository userRepository;
     private final JwtService jwtService;
 
     public AuthService(
             AuthenticationManager authenticationManager,
-            UserRepository userRepository,
             JwtService jwtService) {
 
         this.authenticationManager = authenticationManager;
-        this.userRepository = userRepository;
         this.jwtService = jwtService;
     }
 
     public LoginResponseDto login(LoginRequestDto request) {
 
-        authenticationManager.authenticate(
+        Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getUsername(),
                         request.getPassword()
                 )
         );
 
-        User user = userRepository
-                .findByUsername(request.getUsername())
-                .orElseThrow(() ->
-                        new RuntimeException("User not found"));
-
-        String token = jwtService.generateToken(user);
+        if (!(authentication.getPrincipal() instanceof Userdetails principal)) {
+            throw new UsernameNotFoundException("Authenticated user principal is unavailable");
+        }
+        String token = jwtService.generateToken(principal.getUsers());
 
         return new LoginResponseDto(token);
     }
