@@ -26,17 +26,20 @@ public class JwtService {
     private final String issuer;
     private final String audience;
     private final long jwtExpirationMs;
+    private final long clockSkewSeconds;
 
     private SecretKey signingKey;
 
     public JwtService(@Value("${jwt.secret}") String secretKey,
                       @Value("${jwt.issuer}") String issuer,
                       @Value("${jwt.audience}") String audience,
-                      @Value("${jwt.expiration-ms:900000}") long jwtExpirationMs) {
+                      @Value("${jwt.expiration-ms:900000}") long jwtExpirationMs,
+                      @Value("${jwt.clock-skew-seconds:30}") long clockSkewSeconds) {
         this.secretKey = secretKey;
         this.issuer = issuer;
         this.audience = audience;
         this.jwtExpirationMs = jwtExpirationMs;
+        this.clockSkewSeconds = clockSkewSeconds;
     }
 
     @PostConstruct
@@ -73,7 +76,7 @@ public class JwtService {
                 .verifyWith(signingKey)
                 .requireIssuer(issuer)
                 .requireAudience(audience)
-                .clockSkewSeconds(30)
+                .clockSkewSeconds(clockSkewSeconds)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();

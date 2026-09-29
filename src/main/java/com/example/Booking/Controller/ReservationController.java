@@ -6,6 +6,7 @@ import com.example.Booking.Dto.ReservationResponseDto;
 import com.example.Booking.Enum.Status;
 import com.example.Booking.Service.ReservationService;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,9 +22,6 @@ import java.math.BigDecimal;
 import java.util.Set;
 import java.util.TreeSet;
 
-
-
-
 @RestController
 @RequestMapping("/reservations")
 public class ReservationController {
@@ -32,12 +30,15 @@ public class ReservationController {
     private static final Set<String> ALLOWED_SORT_FIELDS =
             Set.of("startTime", "endTime", "status", "price");
 
-    private static final int MAX_PAGE_SIZE = 100;
-
+    private final int maxPageSize;
     private final ReservationService reservationService;
 
-    public ReservationController(ReservationService reservationService) {
+    // Value is read from properties file, defaulting to 100 if not found
+    public ReservationController(
+            ReservationService reservationService,
+            @Value("${app.reservation.max-page-size:100}") int maxPageSize) {
         this.reservationService = reservationService;
+        this.maxPageSize = maxPageSize;
     }
 
     // USER + ADMIN: create reservation
@@ -80,8 +81,8 @@ public class ReservationController {
         if (page < 0) {
             throw new IllegalArgumentException("page must be 0 or greater");
         }
-        if (size < 1 || size > MAX_PAGE_SIZE) {
-            throw new IllegalArgumentException("size must be between 1 and " + MAX_PAGE_SIZE);
+        if (size < 1 || size > maxPageSize) {
+            throw new IllegalArgumentException("size must be between 1 and " + maxPageSize);
         }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
