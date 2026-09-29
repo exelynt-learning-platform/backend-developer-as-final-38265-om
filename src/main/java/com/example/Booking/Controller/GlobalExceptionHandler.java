@@ -1,6 +1,8 @@
 package com.example.Booking.Controller;
 
 import com.example.Booking.Exception.ResourceNotFoundException;
+import org.slf4j.Logger; // IMPORT ADDED HERE
+import org.slf4j.LoggerFactory; // IMPORT ADDED HERE
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -15,6 +17,9 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    // ADDED: SLF4J Logger instantiation for production tracking
+    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException exception) {
@@ -39,17 +44,16 @@ public class GlobalExceptionHandler {
         return response(HttpStatus.UNAUTHORIZED, "Authentication failed", null);
     }
 
-    // FIX 1: Cleaned up exception handler referencing the class directly
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleResourceNotFound(ResourceNotFoundException exception) {
         return response(HttpStatus.NOT_FOUND, exception.getMessage(), null);
     }
 
-
     // FALLBACK: Catch all other unexpected server crashes safely (HTTP 500)
-    // This removes the generic RuntimeException mapping that was causing the critical review failure
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneralException(Exception exception) {
+        // FIX: Log the full exception stack trace for production incident triage
+        logger.error("An unhandled exception occurred in the application: ", exception);
         return response(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected server error occurred", null);
     }
 

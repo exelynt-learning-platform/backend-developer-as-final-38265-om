@@ -3,13 +3,23 @@ package com.example.Booking.Config;
 import com.example.Booking.Entity.User;
 import com.example.Booking.Enum.Role;
 import com.example.Booking.Repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
+@Profile("dev") // FIX: Gates the entire data seeding configuration under the 'dev' profile
 public class DataInitializer {
+
+    // FIX: Externalised passwords via environment variables with default values for local safety
+    @Value("${SEED_ADMIN_PASSWORD:Admin@123}")
+    private String adminPassword;
+
+    @Value("${SEED_USER_PASSWORD:User@123}")
+    private String userPassword;
 
     @Bean
     CommandLineRunner seedUsers(
@@ -21,9 +31,6 @@ public class DataInitializer {
             // =========================
             // ADMIN USER
             // =========================
-
-
-
             if (userRepository.findByUsername("admin").isEmpty()) {
 
                 User admin = new User();
@@ -31,9 +38,9 @@ public class DataInitializer {
                 admin.setUsername("admin");
                 admin.setEmail("admin@booking.com");
 
-                // Password is stored using BCrypt
+                // FIX: Used externalised variable reference
                 admin.setPassword(
-                        passwordEncoder.encode("Admin@123")
+                        passwordEncoder.encode(adminPassword)
                 );
 
                 admin.setRoles(Role.ADMIN);
@@ -45,11 +52,9 @@ public class DataInitializer {
                 );
             }
 
-
             // =========================
             // NORMAL USER
             // =========================
-
             if (userRepository.findByUsername("user").isEmpty()) {
 
                 User user = new User();
@@ -57,9 +62,9 @@ public class DataInitializer {
                 user.setUsername("user");
                 user.setEmail("user@booking.com");
 
-                // Password is stored using BCrypt
+                // FIX: Used externalised variable reference
                 user.setPassword(
-                        passwordEncoder.encode("User@123")
+                        passwordEncoder.encode(userPassword)
                 );
 
                 user.setRoles(Role.USER);

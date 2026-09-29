@@ -199,11 +199,15 @@ public class ReservationService {
         return mapToResponse(updated);
     }
 
+
     // DELETE RESERVATION
     // ADMIN operation
     @Transactional
     public void deleteReservation(
             Long reservationId) {
+
+
+
 
         Reservations reservation =
                 reservationRepository
@@ -216,17 +220,19 @@ public class ReservationService {
                 reservation);
     }
 
-    // GET LOGGED-IN USER
+    // GET LOGGED-IN USER (Unified to look up by Username OR Email)
     private User getLoggedInUser(
             UserDetails userDetails) {
 
+        String identifier = userDetails.getUsername();
+
         return userRepository
-                .findByEmail(
-                        userDetails.getUsername())
+                .findByUsernameOrEmail(identifier, identifier)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException( // FIXED
-                                "Logged-in user not found for email: " + userDetails.getUsername()));
+                        new ResourceNotFoundException(
+                                "Logged-in user not found for identifier: " + identifier));
     }
+
 
     // ENTITY → DTO
     private ReservationResponseDto mapToResponse(

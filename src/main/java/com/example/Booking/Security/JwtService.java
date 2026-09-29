@@ -15,7 +15,10 @@ import java.util.Date;
 public class JwtService {
 
     @Value("${jwt.secret}")
-    private String SecreteKey;
+    private String secretKey;
+
+    @Value("${jwt.expiration-ms:36000000}")
+    private long jwtExpirationMs;
 
     public String generateToken(User users){
         return Jwts.builder()
@@ -24,50 +27,37 @@ public class JwtService {
                 .claim("username",users.getUsername())
                 .claim("roles",users.getRoles())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis()+1000*60*60*10))
-                .signWith(getsiginingkey())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .signWith(getSigningKey())
                 .compact();
-
     }
-    private Key getsiginingkey() {
-        byte[] bytes= Decoders.BASE64.decode(SecreteKey);
+
+    private Key getSigningKey() {
+        byte[] bytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(bytes);
     }
 
-    public String ExtractUsername(String Token ){
-        return  Jwts.parserBuilder()
-                .setSigningKey(getsiginingkey())
-                .build()
-                .parseClaimsJws(Token)
-                .getBody()
-                .getSubject();
-
-    }
-    public boolean validateToken(String token , UserDetails userDetails){
-        String name=ExtractUsername(token);
-        return name.equals(userDetails.getUsername())&&istokenvalid(token);
-    }
-
-    private boolean istokenvalid(String token) {
-        Date Expiration=Jwts.parserBuilder()
-                .setSigningKey(getsiginingkey())
+    public String extractUsername(String token){
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
-                .getBody().getExpiration();
-        return Expiration.after(new Date());
-
+                .getBody()
+                .getSubject();
     }
 
-//    public Long getUserid(String token){
-//        return Jwts.parserBuilder()
-//                .setSigningKey(getsiginingkey())
-//                .build()
-//                .parseClaimsJws(token)
-//                .getBody()
-//                .get("user_id", Long.class);
-//    }
+    public boolean validateToken(String token, UserDetails userDetails){
+        String name = extractUsername(token);
+        return name.equals(userDetails.getUsername()) && isTokenValid(token);
+    }
 
-
-
-
+    private boolean isTokenValid(String token) {
+        Date expiration = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getExpiration();
+        return expiration.after(new Date());
+    }
 }
