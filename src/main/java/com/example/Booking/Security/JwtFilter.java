@@ -1,10 +1,10 @@
 package com.example.Booking.Security;
 
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -13,7 +13,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import io.jsonwebtoken.JwtException;
 
 import java.io.IOException;
 
@@ -21,68 +20,68 @@ import java.io.IOException;
 public class JwtFilter extends OncePerRequestFilter {
 
     private final UserDetailsService userDetailsService;
-    private final JwtService service;
+    private final JwtService jwtService;
+    private final JsonErrorWriter errorWriter;
 
-    @Autowired
-    public JwtFilter(UserDetailsService userDetailsService, JwtService service) {
+    public JwtFilter(UserDetailsService userDetailsService,
+                     JwtService jwtService,
+                     JsonErrorWriter errorWriter) {
         this.userDetailsService = userDetailsService;
-        this.service = service;
+        this.jwtService = jwtService;
+        this.errorWriter = errorWriter;
+    }
+
+    // Login must work even if the client sends a stale Authorization header
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return request.getServletPath().startsWith("/auth/");
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
             throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
-        String token = null;
-        String username = null;
-        boolean hasTokenHeader = authHeader != null && authHeader.startsWith("Bearer ");
 
-        if (hasTokenHeader) {
-            token = authHeader.substring(7);
-            try {
-                username = service.extractUsername(token);
-            } catch (JwtException | IllegalArgumentException exception) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid JWT token");
-                return;
-            }
-        }
-
-        // FIX: If a token header was provided but we failed to parse a username out of it,
-        // explicitly block the execution flow right here instead of letting it slip through as anonymous.
-        if (hasTokenHeader && (username == null || username.trim().isEmpty())) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or malformed token claim");
+        // No bearer token: continue as anonymous; the security rules decide (401 if protected)
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
             return;
         }
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        String token = authHeader.substring(7);
 
-            UserDetails userDetails;
+        try {
+            String username = jwtService.extractUsername(token);
 
-            try {
-                userDetails = userDetailsService.loadUserByUsername(username);
-            } catch (UsernameNotFoundException exception) {
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication failed");
+            if (username == null || username.isBlank()) {
+                errorWriter.write(response, HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
                 return;
             }
 
-            if (service.validateToken(token, userDetails)) {
+            if (SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                UsernamePasswordAuthenticationToken authenticationToken =
+                if (!jwtService.validateToken(token, userDetails)) {
+                    errorWriter.write(response, HttpServletResponse.SC_UNAUTHORIZED, "Invalid token");
+                    return;
+                }
+
+                UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
-
-                authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-            } else {
-                // SECURITY ENHANCEMENT: Block immediately if token fails signature or expiration validation
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token validation failed");
-                return;
+                                userDetails, null, userDetails.getAuthorities());
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authentication);
             }
+
+        } catch (JwtException | IllegalArgumentException | UsernameNotFoundException ex) {
+            // Expired, bad signature, wrong issuer/audience, malformed, or unknown user.
+            // One generic message so the client learns nothing about which check failed.
+            logger.debug("JWT rejected: " + ex.getClass().getSimpleName());
+            errorWriter.write(response, HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
+            return;
         }
 
         filterChain.doFilter(request, response);

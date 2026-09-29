@@ -18,14 +18,15 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.Set;
+import java.util.TreeSet;
 
 @RestController
 @RequestMapping("/reservations")
 public class ReservationController {
 
-    // Only allow sorting on known fields (adjust to your entity's fields)
+    // Must match the field names in the Reservations entity exactly
     private static final Set<String> ALLOWED_SORT_FIELDS =
-            Set.of("startTime", "endTime", "status", "totalPrice");
+            Set.of("startTime", "endTime", "status", "price");
 
     private static final int MAX_PAGE_SIZE = 100;
 
@@ -61,16 +62,22 @@ public class ReservationController {
             @RequestParam(defaultValue = "asc") String sortDirection) {
 
         if (!ALLOWED_SORT_FIELDS.contains(sortBy)) {
-            sortBy = "startTime";
+            throw new IllegalArgumentException(
+                    "Invalid sortBy '" + sortBy + "'. Allowed values: "
+                            + String.join(", ", new TreeSet<>(ALLOWED_SORT_FIELDS)));
         }
-        size = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
-        page = Math.max(page, 0);
 
-        Sort sort = sortDirection.equalsIgnoreCase("desc")
-                ? Sort.by(sortBy).descending()
-                : Sort.by(sortBy).ascending();
+        // Throws IllegalArgumentException for anything other than asc/desc (case-insensitive)
+        Sort.Direction direction = Sort.Direction.fromString(sortDirection);
 
-        Pageable pageable = PageRequest.of(page, size, sort);
+        if (page < 0) {
+            throw new IllegalArgumentException("page must be 0 or greater");
+        }
+        if (size < 1 || size > MAX_PAGE_SIZE) {
+            throw new IllegalArgumentException("size must be between 1 and " + MAX_PAGE_SIZE);
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
         return ResponseEntity.ok(
                 reservationService.getReservations(

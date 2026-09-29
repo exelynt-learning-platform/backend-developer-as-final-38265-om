@@ -58,9 +58,8 @@ public class ReservationService {
                                 new ResourceNotFoundException( // FIXED
                                         "Resource not found with id: " + request.getResourceId()));
 
-        if (!resource.getAvailable()) {
-            throw new IllegalArgumentException( // CHANGED from generic RuntimeException
-                    "Resource is not available");
+        if (!Boolean.TRUE.equals(resource.getAvailable())) {
+            throw new IllegalArgumentException("Resource is not available");
         }
 
         if (!request.getEndTime()

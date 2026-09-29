@@ -15,10 +15,9 @@ import java.util.Date;
 
 /**
  * Identity convention: the JWT subject is the user's USERNAME.
- * The same value is used by AuthService (login), UserDetailsServiceImpl
- * (loadUserByUsername) and getLoggedInUser. Roles are NOT read from the token;
- * they are loaded from the database on each request, so role changes take
- * effect immediately.
+ * Tokens carry an issuer and an audience, and both are enforced on parsing.
+ * Roles are NOT read from the token; they are loaded from the database on
+ * each request, so role changes take effect immediately.
  */
 @Service
 public class JwtService {
@@ -26,7 +25,14 @@ public class JwtService {
     @Value("${jwt.secret}")
     private String secretKey;
 
-    @Value("${jwt.expiration-ms:36000000}")
+    @Value("${jwt.issuer}")
+    private String issuer;
+
+    @Value("${jwt.audience}")
+    private String audience;
+
+    // Short-lived access token (default 15 minutes)
+    @Value("${jwt.expiration-ms:900000}")
     private long jwtExpirationMs;
 
     private SecretKey signingKey;
@@ -40,9 +46,11 @@ public class JwtService {
     public String generateToken(User user) {
         Date now = new Date();
         return Jwts.builder()
-                .setSubject(user.getUsername())
-                .setIssuedAt(now)
-                .setExpiration(new Date(now.getTime() + jwtExpirationMs))
+                .subject(user.getUsername())
+                .issuer(issuer)
+                .audience().add(audience).and()
+                .issuedAt(now)
+                .expiration(new Date(now.getTime() + jwtExpirationMs))
                 .signWith(signingKey)
                 .compact();
     }
@@ -52,17 +60,20 @@ public class JwtService {
     }
 
     public boolean validateToken(String token, UserDetails userDetails) {
-        // parseClaimsJws already verifies the signature and throws
-        // ExpiredJwtException for expired tokens, so no separate expiry check is needed.
-        Claims claims = parseClaims(token);
-        return claims.getSubject().equals(userDetails.getUsername());
+        // parseClaims verifies signature, expiry, issuer and audience,
+        // and throws a JwtException if any of them fail.
+        String subject = parseClaims(token).getSubject();
+        return subject != null && subject.equals(userDetails.getUsername());
     }
 
     private Claims parseClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(signingKey)
+        return Jwts.parser()
+                .verifyWith(signingKey)
+                .requireIssuer(issuer)
+                .requireAudience(audience)
+                .clockSkewSeconds(30)
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }

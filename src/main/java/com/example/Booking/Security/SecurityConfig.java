@@ -28,6 +28,9 @@ public class SecurityConfig {
     @Autowired
     private JwtFilter jwtFilter;
 
+    @Autowired
+    private JsonErrorWriter errorWriter;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
@@ -37,8 +40,12 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions
+                        // No/invalid authentication -> 401 JSON
                         .authenticationEntryPoint((request, response, exception) ->
-                                response.sendError(401, "Authentication is required")))
+                                errorWriter.write(response, 401, "Authentication is required"))
+                        // Authenticated but not allowed -> 403 JSON
+                        .accessDeniedHandler((request, response, exception) ->
+                                errorWriter.write(response, 403, "Access denied")))
                 .authenticationProvider(provider())
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 

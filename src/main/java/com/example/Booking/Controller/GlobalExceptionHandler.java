@@ -1,10 +1,13 @@
 package com.example.Booking.Controller;
 
+import com.example.Booking.Exception.ResourceInUseException;
 import com.example.Booking.Exception.ResourceNotFoundException;
-import org.slf4j.Logger; // IMPORT ADDED HERE
-import org.slf4j.LoggerFactory; // IMPORT ADDED HERE
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -18,7 +21,6 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // ADDED: SLF4J Logger instantiation for production tracking
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -32,6 +34,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({IllegalArgumentException.class, MethodArgumentTypeMismatchException.class})
     public ResponseEntity<Map<String, Object>> handleBadRequest(Exception exception) {
         return response(HttpStatus.BAD_REQUEST, exception.getMessage(), null);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleUnreadable(HttpMessageNotReadableException exception) {
+        return response(HttpStatus.BAD_REQUEST, "Malformed request body", null);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -49,10 +56,21 @@ public class GlobalExceptionHandler {
         return response(HttpStatus.NOT_FOUND, exception.getMessage(), null);
     }
 
-    // FALLBACK: Catch all other unexpected server crashes safely (HTTP 500)
+    @ExceptionHandler(ResourceInUseException.class)
+    public ResponseEntity<Map<String, Object>> handleResourceInUse(ResourceInUseException exception) {
+        return response(HttpStatus.CONFLICT, exception.getMessage(), null);
+    }
+
+    // Safety net for races or any other FK/unique violation
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException exception) {
+        logger.warn("Data integrity violation", exception);
+        return response(HttpStatus.CONFLICT, "Operation conflicts with existing data", null);
+    }
+
+    // Fallback for unexpected errors (HTTP 500)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneralException(Exception exception) {
-        // FIX: Log the full exception stack trace for production incident triage
         logger.error("An unhandled exception occurred in the application: ", exception);
         return response(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected server error occurred", null);
     }

@@ -7,4 +7,5 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 public interface ReservationRepository
         extends JpaRepository<Reservations, Long>,
         JpaSpecificationExecutor<Reservations> {
+    boolean existsByResourceId(Long resourceId);
 }
