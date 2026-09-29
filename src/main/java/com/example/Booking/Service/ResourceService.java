@@ -4,6 +4,7 @@ import com.example.Booking.Dto.ResourceRequestDto;
 import com.example.Booking.Dto.ResourceResponseDto;
 import com.example.Booking.Entity.Resources;
 import com.example.Booking.Repository.ResourceRepository;
+import com.example.Booking.Controller.ResourceNotFoundException; // IMPORT ADDED HERE
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -54,8 +55,8 @@ public class ResourceService {
                 resourceRepository
                         .findById(id)
                         .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Resource not found"));
+                                new ResourceNotFoundException( // CHANGED TO CUSTOM EXCEPTION
+                                        "Resource not found with id: " + id));
 
         return mapToResponse(resource);
     }
@@ -69,8 +70,8 @@ public class ResourceService {
                 resourceRepository
                         .findById(id)
                         .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Resource not found"));
+                                new ResourceNotFoundException( // CHANGED TO CUSTOM EXCEPTION
+                                        "Resource not found with id: " + id));
 
         resource.setName(request.getName());
         resource.setDescription(request.getDescription());
@@ -90,8 +91,8 @@ public class ResourceService {
                 resourceRepository
                         .findById(id)
                         .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Resource not found"));
+                                new ResourceNotFoundException( // CHANGED TO CUSTOM EXCEPTION
+                                        "Resource not found with id: " + id));
 
         resourceRepository.delete(resource);
     }

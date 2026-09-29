@@ -11,6 +11,7 @@ import com.example.Booking.Repository.ReservationRepository;
 import com.example.Booking.Repository.ResourceRepository;
 import com.example.Booking.Repository.UserRepository;
 import com.example.Booking.Mapper.ReservationMapper;
+import com.example.Booking.Controller.ResourceNotFoundException; // IMPORT ADDED HERE
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -54,11 +55,11 @@ public class ReservationService {
                 resourceRepository
                         .findById(request.getResourceId())
                         .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Resource not found"));
+                                new ResourceNotFoundException( // FIXED
+                                        "Resource not found with id: " + request.getResourceId()));
 
         if (!resource.getAvailable()) {
-            throw new RuntimeException(
+            throw new IllegalArgumentException( // CHANGED from generic RuntimeException
                     "Resource is not available");
         }
 
@@ -137,7 +138,7 @@ public class ReservationService {
 
         User user = getLoggedInUser(userDetails);
         Reservations reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + reservationId)); // FIXED
 
         if (user.getRoles() != Role.ADMIN
                 && !reservation.getUser().getId().equals(user.getId())) {
@@ -159,15 +160,15 @@ public class ReservationService {
                 reservationRepository
                         .findById(reservationId)
                         .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Reservation not found"));
+                                new ResourceNotFoundException( // FIXED
+                                        "Reservation not found with id: " + reservationId));
 
         Resources resource =
                 resourceRepository
                         .findById(request.getResourceId())
                         .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Resource not found"));
+                                new ResourceNotFoundException( // FIXED
+                                        "Resource not found with id: " + request.getResourceId()));
 
         if (!request.getEndTime()
                 .isAfter(request.getStartTime())) {
@@ -208,8 +209,8 @@ public class ReservationService {
                 reservationRepository
                         .findById(reservationId)
                         .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Reservation not found"));
+                                new ResourceNotFoundException( // FIXED
+                                        "Reservation not found with id: " + reservationId));
 
         reservationRepository.delete(
                 reservation);
@@ -223,8 +224,8 @@ public class ReservationService {
                 .findByEmail(
                         userDetails.getUsername())
                 .orElseThrow(() ->
-                        new RuntimeException(
-                                "Logged-in user not found"));
+                        new ResourceNotFoundException( // FIXED
+                                "Logged-in user not found for email: " + userDetails.getUsername()));
     }
 
     // ENTITY → DTO
