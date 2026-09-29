@@ -11,7 +11,7 @@ import com.example.Booking.Repository.ReservationRepository;
 import com.example.Booking.Repository.ResourceRepository;
 import com.example.Booking.Repository.UserRepository;
 import com.example.Booking.Mapper.ReservationMapper;
-import com.example.Booking.Controller.ResourceNotFoundException; // IMPORT ADDED HERE
+import com.example.Booking.Exception.ResourceNotFoundException; // IMPORT ADDED HERE
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;

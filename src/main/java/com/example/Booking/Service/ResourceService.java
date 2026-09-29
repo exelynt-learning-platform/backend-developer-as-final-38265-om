@@ -4,7 +4,7 @@ import com.example.Booking.Dto.ResourceRequestDto;
 import com.example.Booking.Dto.ResourceResponseDto;
 import com.example.Booking.Entity.Resources;
 import com.example.Booking.Repository.ResourceRepository;
-import com.example.Booking.Controller.ResourceNotFoundException; // IMPORT ADDED HERE
+import com.example.Booking.Exception.ResourceNotFoundException; // IMPORT ADDED HERE
 import org.springframework.stereotype.Service;
 
 import java.util.List;

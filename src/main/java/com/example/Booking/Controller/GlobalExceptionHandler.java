@@ -1,5 +1,6 @@
 package com.example.Booking.Controller;
 
+import com.example.Booking.Exception.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
