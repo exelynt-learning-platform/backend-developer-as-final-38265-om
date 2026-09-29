@@ -118,7 +118,7 @@ public class ReservationService {
 
         // ADMIN → all reservations
         // USER → only own reservations
-        if (user.getRoles() != Role.ADMIN) {
+        if (user.getRole() != Role.ADMIN) {
 
             specification =
                     specification.and(
@@ -141,9 +141,9 @@ public class ReservationService {
         Reservation reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + reservationId));
 
-        if (user.getRoles() != Role.ADMIN
+        if (user.getRole() != Role.ADMIN
                 && !reservation.getUser().getId().equals(user.getId())) {
-            throw new ResourceNotFoundException("Reservation not found with id: " + reservationId);
+            throw new AccessDeniedException("Reservation not found with id: " + reservationId);
         }
 
         return mapToResponse(reservation);
@@ -165,7 +165,7 @@ public class ReservationService {
                                         "Reservation not found with id: " + reservationId));
 
         User user = getLoggedInUser(userDetails);
-        if (user.getRoles() != Role.ADMIN
+        if (user.getRole() != Role.ADMIN
                 && !reservation.getUser().getId().equals(user.getId())) {
             throw new AccessDeniedException("You are not allowed to update this reservation");
         }
@@ -224,10 +224,6 @@ public class ReservationService {
     @Transactional
     public void deleteReservation(
             Long reservationId) {
-
-
-
-
         Reservation reservation =
                 reservationRepository
                         .findById(reservationId)

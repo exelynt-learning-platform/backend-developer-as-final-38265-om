@@ -61,7 +61,7 @@ public class DataInitializer {
         user.setUsername(username);
         user.setEmail(email);
         user.setPassword(encoder.encode(rawPassword));
-        user.setRoles(role);
+        user.setRole(role);
         repo.save(user);
 
         // Log the username only, never the password

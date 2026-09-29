@@ -26,10 +26,10 @@ public class Userdetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        if (user.getRoles() == null) {
+        if (user.getRole() == null) {
             return List.of();
         }
-        return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRoles().name()));
+        return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
     }
 
     @Override

@@ -130,7 +130,7 @@ class BookingServiceTests {
         user.setUsername(username);
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode("Password@123"));
-        user.setRoles(role);
+        user.setRole(role);
         return userRepository.save(user);
     }
 

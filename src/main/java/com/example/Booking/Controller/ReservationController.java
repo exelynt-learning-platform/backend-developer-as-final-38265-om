@@ -20,8 +20,9 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.Set;
 import java.util.TreeSet;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+
+
+
 
 @RestController
 @RequestMapping("/reservations")

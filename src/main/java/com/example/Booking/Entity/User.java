@@ -26,7 +26,7 @@ public class User {
 
     @NotNull(message = "Role is required")
     @Enumerated(EnumType.STRING)
-    private Role roles;
+    private Role role;
 
 
     public Long getId() {
@@ -61,11 +61,11 @@ public class User {
         this.password = password;
     }
 
-    public Role getRoles() {
-        return roles;
+    public Role getRole() {
+        return role;
     }
 
-    public void setRoles(Role roles) {
-        this.roles = roles;
+    public void setRole(Role role) {
+        this.role = role;
     }
 }

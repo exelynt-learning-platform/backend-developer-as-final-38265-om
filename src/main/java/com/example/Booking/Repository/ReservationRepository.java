@@ -3,6 +3,7 @@ package com.example.Booking.Repository;
 import com.example.Booking.Entity.Reservation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import java.time.LocalDateTime;
 
 public interface ReservationRepository
         extends JpaRepository<Reservation, Long>,
@@ -10,6 +11,6 @@ public interface ReservationRepository
     boolean existsByResourceId(Long resourceId);
 
     boolean existsByResourceIdAndIdNotAndStartTimeLessThanAndEndTimeGreaterThan(
-            Long resourceId, Long reservationId, java.time.LocalDateTime endTime,
+            Long resourceId, Long reservationId, LocalDateTime endTime,
             java.time.LocalDateTime startTime);
 }
