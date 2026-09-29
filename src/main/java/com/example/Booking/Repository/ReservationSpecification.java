@@ -1,3 +1,4 @@
+
 package com.example.Booking.Repository;
 
 import com.example.Booking.Entity.Reservation;
@@ -7,45 +8,68 @@ import org.springframework.data.jpa.domain.Specification;
 import java.math.BigDecimal;
 
 /**
- * Reservation query specifications.
- * Methods explicitly return Specification.unrestricted() instead of ambiguous null definitions
- * to perfectly align with modern Spring Data JPA criteria building.
+ * Reservation query specifications. Optional filter factories return {@code null}
+ * when their input is absent; Spring Data JPA treats the resulting predicate as unrestricted.
  */
 public class ReservationSpecification {
-
-    private ReservationSpecification() {
-        // Private constructor to prevent instantiation of utility class
-    }
-
     public static Specification<Reservation> hasStatus(Status status) {
-        if (status == null) {
-            return Specification.unrestricted(); // Safe, unambiguous no-op query filter
-        }
-        return (root, query, criteriaBuilder) ->
-                criteriaBuilder.equal(root.get("status"), status);
+
+        return (root, query, criteriaBuilder) -> {
+
+            if (status == null) {
+                return null;
+            }
+
+            return criteriaBuilder.equal(
+                    root.get("status"),
+                    status
+            );
+        };
     }
 
-    public static Specification<Reservation> priceGreaterThanOrEqualTo(BigDecimal minPrice) {
-        if (minPrice == null) {
-            return Specification.unrestricted();
-        }
-        return (root, query, criteriaBuilder) ->
-                criteriaBuilder.greaterThanOrEqualTo(root.get("price"), minPrice);
+
+    public static Specification<Reservation> priceGreaterThanOrEqualTo(
+            BigDecimal minPrice) {
+
+        return (root, query, criteriaBuilder) -> {
+
+            if (minPrice == null) {
+                return null;
+            }
+
+            return criteriaBuilder.greaterThanOrEqualTo(
+                    root.get("price"),
+                    minPrice
+            );
+        };
     }
 
-    public static Specification<Reservation> priceLessThanOrEqualTo(BigDecimal maxPrice) {
-        if (maxPrice == null) {
-            return Specification.unrestricted();
-        }
-        return (root, query, criteriaBuilder) ->
-                criteriaBuilder.lessThanOrEqualTo(root.get("price"), maxPrice);
+
+    public static Specification<Reservation> priceLessThanOrEqualTo(
+            BigDecimal maxPrice) {
+
+        return (root, query, criteriaBuilder) -> {
+
+            if (maxPrice == null) {
+                return null;
+            }
+
+            return criteriaBuilder.lessThanOrEqualTo(
+                    root.get("price"),
+                    maxPrice
+            );
+        };
     }
 
-    public static Specification<Reservation> belongsToUser(Long userId) {
-        if (userId == null) {
-            return Specification.unrestricted();
-        }
+
+    public static Specification<Reservation> belongsToUser(
+           Long userId) {
+
         return (root, query, criteriaBuilder) ->
-                criteriaBuilder.equal(root.get("user").get("id"), userId);
+
+                criteriaBuilder.equal(
+                        root.get("user").get("id"),
+                        userId
+                );
     }
 }
