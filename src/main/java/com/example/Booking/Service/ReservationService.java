@@ -221,16 +221,15 @@ public class ReservationService {
     }
 
     // GET LOGGED-IN USER (Unified to look up by Username OR Email)
-    private User getLoggedInUser(
-            UserDetails userDetails) {
-
-        String identifier = userDetails.getUsername();
+// Identity convention: USERNAME (same as the JWT subject and Userdetails.getUsername())
+    private User getLoggedInUser(UserDetails userDetails) {
+        String username = userDetails.getUsername();
 
         return userRepository
-                .findByUsernameOrEmail(identifier, identifier)
+                .findByUsername(username)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
-                                "Logged-in user not found for identifier: " + identifier));
+                                "Logged-in user not found: " + username));
     }
 
 

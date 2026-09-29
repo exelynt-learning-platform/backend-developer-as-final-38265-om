@@ -10,62 +10,48 @@ import java.util.List;
 
 public class Userdetails implements UserDetails {
 
-    private User users;
+    private final User user;
 
-    public Userdetails(User users) {
-        this.users = users;
+    public Userdetails(User user) {
+        this.user = user;
     }
 
-    public Long getUserid(){
-        return users.getId();
+    public Long getUserid() {
+        return user.getId();
+    }
+
+    public User getUsers() {
+        return user;
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Avoid using .stream() since getRoles() is a single Enum, not a List
-        if (users.getRoles() == null) {
+        if (user.getRoles() == null) {
             return List.of();
         }
-
-        return List.of(new SimpleGrantedAuthority("ROLE_" + users.getRoles().name()));
+        return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRoles().name()));
     }
-
 
     @Override
     public String getPassword() {
-        return users.getPassword();
+        return user.getPassword();
     }
 
+    // Identity convention: USERNAME (must match the JWT subject)
     @Override
     public String getUsername() {
-        return users.getEmail();
+        return user.getUsername();
     }
 
     @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
+    public boolean isAccountNonExpired() { return true; }
 
     @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
+    public boolean isAccountNonLocked() { return true; }
 
     @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
+    public boolean isCredentialsNonExpired() { return true; }
 
     @Override
-    public boolean isEnabled() {
-        return true;
-    }
-
-    public User getUsers() {
-        return users;
-    }
-
-    public void setUsers(User users) {
-        this.users = users;
-    }
+    public boolean isEnabled() { return true; }
 }
